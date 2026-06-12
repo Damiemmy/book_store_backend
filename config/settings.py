@@ -12,6 +12,9 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 import os
 from pathlib import Path
 from datetime import timedelta
+from dotenv import load_dotenv
+
+load_dotenv()
 
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -44,9 +47,12 @@ INSTALLED_APPS = [
     'apps.books',
     'apps.cart',
     'apps.orders',
+    'apps.payments',
     'rest_framework',
     'rest_framework_simplejwt',
     'django_filters',
+    'django_celery_results',
+    "drf_spectacular",
 
 ]
 
@@ -135,13 +141,19 @@ AUTH_USER_MODEL='users.User'
 
 SIMPLE_JWT={
     "ACCESS_TOKEN_LIFETIME":timedelta(minutes=120),
-    "REFRESH_TOKEN_LIFETIME":timedelta(days=7)
+    "REFRESH_TOKEN_LIFETIME":timedelta(days=7),
+    "ROTATE_REFRESH_TOKENS": True,
+    "BLACKLIST_AFTER_ROTATION": True,
 }
 
 REST_FRAMEWORK={
     'DEFAULT_AUTHENTICATION_CLASSES':(
         'rest_framework_simplejwt.authentication.JWTAuthentication',
     ),
+    "EXCEPTION_HANDLER":
+        "core.exceptions.custom_exception_handler",
+    "DEFAULT_PAGINATION_CLASS":
+        "core.pagination.StandardPagination",
     'DEFAULT_FILTER_BACKENDS':[
         'django_filters.rest_framework.DjangoFilterBackend',
         "rest_framework.filters.SearchFilter",
@@ -149,6 +161,28 @@ REST_FRAMEWORK={
     ],
 }
 
+#pagination
 REST_FRAMEWORK["DEFAULT_PAGINATION_CLASS"] = "rest_framework.pagination.PageNumberPagination"
 
 REST_FRAMEWORK["PAGE_SIZE"] = 10
+
+#celery
+CELERY_BROKER_URL = "redis://localhost:6379/0"
+
+CELERY_ACCEPT_CONTENT = ["json"]
+CELERY_TASK_SERIALIZER = "json"
+
+CELERY_RESULT_BACKEND = "django-db"
+
+
+
+EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+
+EMAIL_HOST = "smtp.gmail.com"
+EMAIL_PORT = 465
+EMAIL_USE_SSL = True
+
+EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER")
+EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD")
+
+DEFAULT_FROM_EMAIL = EMAIL_HOST_USER

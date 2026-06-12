@@ -7,6 +7,9 @@ from rest_framework.response import Response
 from .models import Order
 from .serializers import OrderSerializer
 from .services import create_order_from_cart
+from apps.notifications.tasks import (
+    send_order_confirmation_email
+)
 
 class OrderViewSet(ModelViewSet):
     serializer_class = OrderSerializer
@@ -17,7 +20,12 @@ class OrderViewSet(ModelViewSet):
 
     def create(self, request, *args, **kwargs):
         order = create_order_from_cart(request.user)
-
         serializer = self.get_serializer(order)
+
+        send_order_confirmation_email.delay(
+            user.email,
+            order.id
+        )
+        
 
         return Response(serializer.data)

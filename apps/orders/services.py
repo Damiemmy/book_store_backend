@@ -1,6 +1,9 @@
 from django.db import transaction
 from .models import Order, OrderItem
 from apps.cart.models import Cart
+#modified from payment app
+from apps.payments.models import Payment
+from apps.payments.tasks import process_payment
 
 
 @transaction.atomic
@@ -27,5 +30,13 @@ def create_order_from_cart(user):
     order.save()
 
     cart.items.all().delete()
+
+    payment = Payment.objects.create(
+        order=order,
+        amount=total,
+        status="pending"
+    )
+
+    process_payment.delay(payment.id)
 
     return order

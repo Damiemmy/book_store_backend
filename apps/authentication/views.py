@@ -7,7 +7,9 @@ from rest_framework.generics import CreateAPIView,RetrieveAPIView
 from .jwt import CustomTokenObtainPairSerializer
 from rest_framework_simplejwt.views import TokenObtainPairView
 from rest_framework.response import Response
-
+from apps.notifications.tasks import (
+    send_welcome_email_task
+)
 
 User=get_user_model()
 
@@ -15,6 +17,13 @@ User=get_user_model()
 
 class RegisterView(CreateAPIView):
     serializer_class=RegisterSerializer
+
+    def perform_create(self,serializer):
+        user = serializer.save()
+        send_welcome_email_task.delay(
+            user.email,
+            user.username,
+        )
 
 class LoginView(TokenObtainPairView):
     serializer_class=CustomTokenObtainPairSerializer
